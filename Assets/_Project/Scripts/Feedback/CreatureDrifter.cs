@@ -1,6 +1,6 @@
 // CreatureDrifter
 // Trigger: called by BrickBurstFeedback on GameEvents.BrickDestroyed (by chance).
-// Purpose: releases a tiny jellyfish, fish or seahorse that drifts slowly away BEHIND the playfield and fades out.
+// Purpose: releases the tiny creature (fish, coral, seahorse or jellyfish) from a broken capsule; it drifts slowly away BEHIND the playfield and fades out.
 // Pooled with a hard cap on how many are alive at once. Pure decoration: no colliders, no gameplay effect.
 using UnityEngine;
 
@@ -22,7 +22,7 @@ public class CreatureDrifter : MonoBehaviour
     [Tooltip("Random drift speed in units/second (min, max). Keep it slow and calm.")]
     [SerializeField] private Vector2 driftSpeed = new Vector2(0.35f, 0.7f);
     [Tooltip("Random creature height in world units (min, max).")]
-    [SerializeField] private Vector2 size = new Vector2(0.45f, 0.7f);
+    [SerializeField] private Vector2 size = new Vector2(0.42f, 0.55f);
     [Tooltip("Sideways sway amplitude in world units.")]
     [SerializeField] private float swayAmplitude = 0.15f;
     [Tooltip("Sideways sway frequency in Hz.")]
@@ -34,7 +34,7 @@ public class CreatureDrifter : MonoBehaviour
 
     [Header("Look")]
     [Tooltip("Creature tint. Its alpha is the maximum opacity; keep it low so creatures stay in the background.")]
-    [SerializeField] private Color tint = new Color(1f, 1f, 1f, 0.55f);
+    [SerializeField] private Color tint = new Color(1f, 1f, 1f, 0.6f);
     [Tooltip("Seconds to fade in after spawning.")]
     [SerializeField] private float fadeInTime = 0.5f;
     [Tooltip("Fraction of the lifetime (at the end) spent fading out.")]
@@ -52,6 +52,8 @@ public class CreatureDrifter : MonoBehaviour
         public float Life;
         public float Size;
         public float Phase;
+        public float SpriteHeight = 1f;
+        public Color Color = Color.white;
         public bool Alive;
     }
 
@@ -81,8 +83,18 @@ public class CreatureDrifter : MonoBehaviour
         foreach (Creature c in creatures) Hide(c);
     }
 
-    /// <summary>Releases a creature at a world position. Returns false if the cap is reached.</summary>
+    /// <summary>Releases a random creature at a world position. Returns false if the cap is reached.</summary>
     public bool TrySpawn(Vector2 position)
+    {
+        if (creatureSprites == null || creatureSprites.Length == 0) return false;
+        return TrySpawn(position, Random.Range(0, creatureSprites.Length), Color.white, Random.value < 0.5f);
+    }
+
+    /// <summary>
+    /// Releases a specific creature (index into the sprite list) with a colour and facing, so it matches
+    /// the creature that was inside the broken capsule. Returns false if the cap is reached.
+    /// </summary>
+    public bool TrySpawn(Vector2 position, int spriteIndex, Color color, bool facesRight)
     {
         if (creatures == null || creatureSprites == null || creatureSprites.Length == 0) return false;
 
@@ -93,15 +105,19 @@ public class CreatureDrifter : MonoBehaviour
         }
         if (c == null) return false;
 
-        Vector2 dir = new Vector2(Random.Range(-1f, 1f), Random.Range(0.3f, 1f)).normalized;
+        // Swim the way the creature faces (sprites face left; flipped = facing right).
+        float sideways = Random.Range(0.2f, 1f) * (facesRight ? 1f : -1f);
+        Vector2 dir = new Vector2(sideways, Random.Range(0.3f, 1f)).normalized;
         c.Pos = position;
         c.Vel = dir * Random.Range(driftSpeed.x, driftSpeed.y);
         c.Age = 0f;
         c.Life = Random.Range(lifetime.x, lifetime.y);
         c.Size = Random.Range(size.x, size.y);
         c.Phase = Random.value * Mathf.PI * 2f;
-        c.R.sprite = creatureSprites[Random.Range(0, creatureSprites.Length)];
-        c.R.flipX = dir.x > 0f;   // sprites face left; flip when swimming right
+        c.Color = color;
+        c.R.sprite = creatureSprites[Mathf.Clamp(spriteIndex, 0, creatureSprites.Length - 1)];
+        c.SpriteHeight = Mathf.Max(0.01f, c.R.sprite.bounds.size.y);
+        c.R.flipX = facesRight;
         c.R.sortingOrder = sortingOrder;
         c.Alive = true;
         AliveCount++;
@@ -129,13 +145,14 @@ public class CreatureDrifter : MonoBehaviour
         c.T.localPosition = new Vector3(c.Pos.x + sway, c.Pos.y, 0f);
 
         float pulse = 1f + pulseAmount * Mathf.Sin(c.Phase + c.Age * pulseFrequency * Mathf.PI * 2f);
-        c.T.localScale = new Vector3(c.Size, c.Size * pulse, 1f);
+        float k = c.Size / c.SpriteHeight;   // Size is the creature's height in world units
+        c.T.localScale = new Vector3(k, k * pulse, 1f);
 
         float t = c.Age / c.Life;
         float fadeIn = fadeInTime > 0f ? Mathf.Clamp01(c.Age / fadeInTime) : 1f;
         float fadeOut = Mathf.Clamp01((1f - t) / fadeOutPortion);
-        Color col = tint;
-        col.a *= fadeIn * fadeOut;
+        Color col = tint * c.Color;
+        col.a = tint.a * fadeIn * fadeOut;
         c.R.color = col;
     }
 

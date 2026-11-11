@@ -1,8 +1,8 @@
 // OceanProgression
 // Trigger: GameEvents.BrickDestroyed (counts cleared bricks); animates every frame with unscaled time.
-// Purpose: subtle visual progression. As bricks are cleared the ocean background slowly brightens and a few
-// seaweed strands and light rays fade in and sway gently. Visual only: never touches gameplay, and all values
-// stay low-contrast so nothing competes with the ball.
+// Purpose: subtle visual progression. As bricks are cleared the ocean background slowly brightens, the light
+// rays get a little stronger and the seaweed/coral on both sides become a bit more visible; seaweed sways gently.
+// Visual only: never touches gameplay, and all values stay low-contrast so nothing competes with the ball.
 using UnityEngine;
 
 public class OceanProgression : MonoBehaviour
@@ -12,31 +12,35 @@ public class OceanProgression : MonoBehaviour
     [SerializeField] private SpriteRenderer background;
     [Tooltip("Parent of the bricks (the LevelBuilder). Used once to count the starting bricks.")]
     [SerializeField] private Transform brickParent;
-    [Tooltip("Seaweed sprites (pivot at the bottom).")]
+    [Tooltip("Seaweed sprites (pivot at the bottom). These sway.")]
     [SerializeField] private SpriteRenderer[] seaweed;
+    [Tooltip("Coral sprites near the bottom. These fade with progress but do not sway.")]
+    [SerializeField] private SpriteRenderer[] coral;
     [Tooltip("Light-ray sprites (pivot at the top).")]
     [SerializeField] private SpriteRenderer[] lightRays;
 
     [Header("Background")]
-    [Tooltip("Background tint at the start (darker).")]
-    [SerializeField] private Color startTint = new Color(0.78f, 0.78f, 0.82f, 1f);
+    [Tooltip("Background tint at the start (slightly darker).")]
+    [SerializeField] private Color startTint = new Color(0.88f, 0.88f, 0.9f, 1f);
     [Tooltip("Background tint when every brick is cleared (brighter).")]
     [SerializeField] private Color clearedTint = Color.white;
     [Tooltip("How fast the visuals catch up with progress (per second).")]
     [SerializeField, Min(0.1f)] private float smoothing = 1.5f;
 
-    [Header("Seaweed")]
-    [Tooltip("Seaweed opacity at the start.")]
-    [SerializeField, Range(0f, 1f)] private float seaweedStartAlpha = 0.08f;
-    [Tooltip("Seaweed opacity when every brick is cleared.")]
-    [SerializeField, Range(0f, 1f)] private float seaweedMaxAlpha = 0.35f;
+    [Header("Seaweed & coral")]
+    [Tooltip("Seaweed/coral opacity at the start.")]
+    [SerializeField, Range(0f, 1f)] private float decorStartAlpha = 0.35f;
+    [Tooltip("Seaweed/coral opacity when every brick is cleared.")]
+    [SerializeField, Range(0f, 1f)] private float decorMaxAlpha = 0.55f;
     [Tooltip("Seaweed sway in degrees.")]
-    [SerializeField, Range(0f, 20f)] private float swayAngle = 6f;
+    [SerializeField, Range(0f, 20f)] private float swayAngle = 5f;
     [Tooltip("Seaweed sway speed in Hz.")]
-    [SerializeField] private float swaySpeed = 0.35f;
+    [SerializeField] private float swaySpeed = 0.3f;
 
     [Header("Light rays")]
-    [Tooltip("Light-ray opacity when every brick is cleared (they start invisible).")]
+    [Tooltip("Light-ray opacity at the start.")]
+    [SerializeField, Range(0f, 1f)] private float rayStartAlpha = 0.07f;
+    [Tooltip("Light-ray opacity when every brick is cleared.")]
     [SerializeField, Range(0f, 1f)] private float rayMaxAlpha = 0.16f;
     [Tooltip("Light-ray shimmer speed in Hz.")]
     [SerializeField] private float rayShimmerSpeed = 0.25f;
@@ -45,26 +49,16 @@ public class OceanProgression : MonoBehaviour
     private int destroyedBricks;
     private float shownProgress;
     private Quaternion[] seaweedBaseRot;
-    private Color[] seaweedColor;
-    private Color[] rayColor;
 
     private void Awake()
     {
         seaweed ??= new SpriteRenderer[0];
+        coral ??= new SpriteRenderer[0];
         lightRays ??= new SpriteRenderer[0];
 
         seaweedBaseRot = new Quaternion[seaweed.Length];
-        seaweedColor = new Color[seaweed.Length];
         for (int i = 0; i < seaweed.Length; i++)
-        {
-            if (seaweed[i] == null) continue;
-            seaweedBaseRot[i] = seaweed[i].transform.localRotation;
-            seaweedColor[i] = seaweed[i].color;
-        }
-
-        rayColor = new Color[lightRays.Length];
-        for (int i = 0; i < lightRays.Length; i++)
-            if (lightRays[i] != null) rayColor[i] = lightRays[i].color;
+            if (seaweed[i] != null) seaweedBaseRot[i] = seaweed[i].transform.localRotation;
 
         Apply(0f, 0f);
     }
@@ -81,8 +75,7 @@ public class OceanProgression : MonoBehaviour
             totalBricks = brickParent.GetComponentsInChildren<Brick>().Length;
 
         float progress = totalBricks > 0 ? Mathf.Clamp01((float)destroyedBricks / totalBricks) : 0f;
-        float dt = Time.unscaledDeltaTime;
-        shownProgress = Mathf.Lerp(shownProgress, progress, 1f - Mathf.Exp(-smoothing * dt));
+        shownProgress = Mathf.Lerp(shownProgress, progress, 1f - Mathf.Exp(-smoothing * Time.unscaledDeltaTime));
 
         Apply(shownProgress, Time.unscaledTime);
     }
@@ -91,26 +84,32 @@ public class OceanProgression : MonoBehaviour
     {
         if (background != null) background.color = Color.Lerp(startTint, clearedTint, p);
 
-        float weedAlpha = Mathf.Lerp(seaweedStartAlpha, seaweedMaxAlpha, p);
+        float decorAlpha = Mathf.Lerp(decorStartAlpha, decorMaxAlpha, p);
         for (int i = 0; i < seaweed.Length; i++)
         {
             SpriteRenderer sr = seaweed[i];
             if (sr == null) continue;
             float angle = swayAngle * Mathf.Sin(time * swaySpeed * Mathf.PI * 2f + i * 1.7f);
             sr.transform.localRotation = seaweedBaseRot[i] * Quaternion.Euler(0f, 0f, angle);
-            Color c = seaweedColor[i];
-            c.a = weedAlpha;
-            sr.color = c;
+            SetAlpha(sr, decorAlpha);
         }
+        foreach (SpriteRenderer sr in coral)
+            if (sr != null) SetAlpha(sr, decorAlpha);
 
+        float rayAlpha = Mathf.Lerp(rayStartAlpha, rayMaxAlpha, p);
         for (int i = 0; i < lightRays.Length; i++)
         {
             SpriteRenderer sr = lightRays[i];
             if (sr == null) continue;
             float shimmer = 0.75f + 0.25f * Mathf.Sin(time * rayShimmerSpeed * Mathf.PI * 2f + i * 2.3f);
-            Color c = rayColor[i];
-            c.a = rayMaxAlpha * p * shimmer;
-            sr.color = c;
+            SetAlpha(sr, rayAlpha * shimmer);
         }
+    }
+
+    private static void SetAlpha(SpriteRenderer sr, float a)
+    {
+        Color c = sr.color;
+        c.a = a;
+        sr.color = c;
     }
 }

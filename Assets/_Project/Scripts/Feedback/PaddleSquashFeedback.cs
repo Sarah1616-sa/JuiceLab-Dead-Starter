@@ -32,13 +32,13 @@ public class PaddleSquashFeedback : MonoBehaviour
     [Tooltip("Ring sprite for the ripple.")]
     [SerializeField] private Sprite rippleSprite;
     [Tooltip("Ripple lifetime in seconds.")]
-    [SerializeField] private float rippleLifetime = 0.5f;
+    [SerializeField] private float rippleLifetime = 0.55f;
     [Tooltip("Ripple diameter at start and end, in world units.")]
-    [SerializeField] private Vector2 rippleSize = new Vector2(0.3f, 1.6f);
+    [SerializeField] private Vector2 rippleSize = new Vector2(0.4f, 2.2f);
     [Tooltip("Ripple height multiplier (below 1 = flat water ring).")]
-    [SerializeField, Range(0.2f, 1f)] private float rippleAspect = 0.4f;
+    [SerializeField, Range(0.2f, 1f)] private float rippleAspect = 0.3f;
     [Tooltip("Ripple colour; alpha is the starting opacity.")]
-    [SerializeField] private Color rippleColor = new Color(0.75f, 0.95f, 1f, 0.6f);
+    [SerializeField] private Color rippleColor = new Color(0.8f, 1f, 1f, 0.85f);
     [Tooltip("Also spawn a smaller, slower inner ring.")]
     [SerializeField] private bool innerRing = true;
     [Tooltip("Ripple sorting order (above the paddle, below the ball).")]

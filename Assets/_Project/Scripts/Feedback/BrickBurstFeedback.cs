@@ -3,7 +3,8 @@
 // Purpose: a short underwater burst where the brick broke: bubbles that float up, a few splash droplets that
 // arc and fall, and a soft splash ring, all tinted with the brick's colour. Lifetime is about 0.4-0.7 s and
 // every sprite comes from the shared FxSpritePool, so rapid hits recycle instead of piling up.
-// Sometimes it also releases a tiny sea creature through CreatureDrifter. Visual only.
+// A few small glass shards spin out and fade quickly. The creature that lived inside the capsule
+// (BrickVisualAfter) is released through CreatureDrifter and drifts away behind the playfield. Visual only.
 using UnityEngine;
 
 public class BrickBurstFeedback : MonoBehaviour
@@ -17,6 +18,8 @@ public class BrickBurstFeedback : MonoBehaviour
     [SerializeField] private Sprite dropletSprite;
     [Tooltip("Sprite used for the splash ring.")]
     [SerializeField] private Sprite ringSprite;
+    [Tooltip("Sprite used for the glass shards.")]
+    [SerializeField] private Sprite shardSprite;
     [Tooltip("Optional creature spawner. Leave empty for no creatures.")]
     [SerializeField] private CreatureDrifter creatures;
 
@@ -70,11 +73,29 @@ public class BrickBurstFeedback : MonoBehaviour
     [Tooltip("Starting ring opacity.")]
     [SerializeField, Range(0f, 1f)] private float ringAlpha = 0.5f;
 
+    [Header("Glass shards")]
+    [Tooltip("Random shard count per brick (min, max inclusive). 0 = no shards.")]
+    [SerializeField] private Vector2Int shardCount = new Vector2Int(5, 7);
+    [Tooltip("Random shard lifetime in seconds (min, max). Keep short so shards vanish quickly.")]
+    [SerializeField] private Vector2 shardLifetime = new Vector2(0.2f, 0.35f);
+    [Tooltip("Random shard size in world units (min, max).")]
+    [SerializeField] private Vector2 shardSize = new Vector2(0.1f, 0.18f);
+    [Tooltip("Random shard launch speed in units/second (min, max).")]
+    [SerializeField] private Vector2 shardSpeed = new Vector2(2.5f, 4.5f);
+    [Tooltip("Random shard spin in degrees/second (applied in either direction).")]
+    [SerializeField] private Vector2 shardSpin = new Vector2(180f, 540f);
+    [Tooltip("Shard gravity in units/s² (negative falls).")]
+    [SerializeField] private float shardGravity = -6f;
+    [Tooltip("How much of the brick colour the shards take (0 = white glass).")]
+    [SerializeField, Range(0f, 1f)] private float shardTint = 0.4f;
+    [Tooltip("Starting shard opacity.")]
+    [SerializeField, Range(0f, 1f)] private float shardAlpha = 0.85f;
+
     [Header("Sorting & creatures")]
     [Tooltip("Sorting order of the burst. Keep below the ball (10) so the ball stays readable.")]
     [SerializeField] private int sortingOrder = 8;
-    [Tooltip("Chance (0-1) that a destroyed brick releases a tiny creature.")]
-    [SerializeField, Range(0f, 1f)] private float creatureChance = 0.3f;
+    [Tooltip("Chance (0-1) that a destroyed brick releases its creature (CreatureDrifter still caps how many are alive).")]
+    [SerializeField, Range(0f, 1f)] private float creatureChance = 1f;
 
     private void OnEnable() => GameEvents.BrickDestroyed += OnBrickDestroyed;
     private void OnDisable() => GameEvents.BrickDestroyed -= OnBrickDestroyed;
@@ -161,7 +182,47 @@ public class BrickBurstFeedback : MonoBehaviour
             });
         }
 
+        // Glass shards: quick, spinning, gone in about a quarter second.
+        if (shardSprite != null)
+        {
+            Color shardColor = Color.Lerp(Color.white, brick, shardTint);
+            shardColor.a = shardAlpha;
+            int shards = Random.Range(shardCount.x, shardCount.y + 1);
+            for (int i = 0; i < shards; i++)
+            {
+                float angle = Random.Range(0f, Mathf.PI * 2f);
+                Vector2 dir = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle) * 0.7f + 0.3f);
+                float size = Random.Range(shardSize.x, shardSize.y);
+                float spin = Random.Range(shardSpin.x, shardSpin.y) * (Random.value < 0.5f ? -1f : 1f);
+
+                pool.Emit(new FxParticle
+                {
+                    Sprite = shardSprite,
+                    Position = center + new Vector2(
+                        Random.Range(-spawnHalfExtents.x, spawnHalfExtents.x),
+                        Random.Range(-spawnHalfExtents.y, spawnHalfExtents.y)),
+                    Velocity = dir.normalized * Random.Range(shardSpeed.x, shardSpeed.y),
+                    Drag = 2f,
+                    Buoyancy = shardGravity,
+                    Lifetime = Random.Range(shardLifetime.x, shardLifetime.y),
+                    StartSize = size,
+                    EndSize = size * 0.6f,
+                    Aspect = 1f,
+                    Color = shardColor,
+                    Rotation = Random.Range(0f, 360f),
+                    AngularVelocity = spin,
+                    SortingOrder = sortingOrder
+                });
+            }
+        }
+
+        // Release the creature that was inside this capsule (same type, same tint).
         if (creatures != null && Random.value < creatureChance)
-            creatures.TrySpawn(center);
+        {
+            if (BrickVisualAfter.TryGetAt(center, out BrickVisualAfter v))
+                creatures.TrySpawn(center, v.CreatureIndex, v.CreatureColor, v.CreatureFlipped);
+            else
+                creatures.TrySpawn(center);
+        }
     }
 }

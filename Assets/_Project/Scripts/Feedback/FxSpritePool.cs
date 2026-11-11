@@ -27,6 +27,10 @@ public struct FxParticle
     /// <summary>Sideways sine drift frequency in Hz.</summary>
     public float WobbleFrequency;
     public int SortingOrder;
+    /// <summary>Starting rotation in degrees.</summary>
+    public float Rotation;
+    /// <summary>Spin in degrees per second.</summary>
+    public float AngularVelocity;
 }
 
 public class FxSpritePool : MonoBehaviour
@@ -160,6 +164,7 @@ public class FxSpritePool : MonoBehaviour
 
         s.T.localPosition = new Vector3(s.Pos.x + wobble, s.Pos.y, 0f);
         s.T.localScale = new Vector3(size, size * aspect, 1f);
+        s.T.localRotation = Quaternion.Euler(0f, 0f, s.P.Rotation + s.P.AngularVelocity * s.Age);
 
         float fadeIn = fadeInPortion > 0f ? Mathf.Clamp01(t / fadeInPortion) : 1f;
         float fadeOut = 1f - t * t;

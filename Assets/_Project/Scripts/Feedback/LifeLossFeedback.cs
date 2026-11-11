@@ -1,8 +1,9 @@
 // LifeLossFeedback
 // Trigger: GameEvents.BallLost and GameEvents.LivesChanged (both are raised together when the ball is lost,
 //          so they are merged into one cue per frame).
-// Purpose: makes losing a life visible even with audio muted. The lives text flashes a soft red-to-blue tint
-// and wobbles, and a dark vignette pulses at the screen edges and fades in under 0.5 s.
+// Purpose: makes losing a life visible even with audio muted. A dark vignette pulses at the screen edges and
+// fades in under 0.5 s. Optionally the lives text flashes a soft red-to-blue tint and wobbles (in After.unity the
+// text is hidden and LivesShellsFeedback does the shell flash instead, so that slot is left empty).
 // Only colour, rotation and scale of UI elements change; the HUD still owns the lives text value.
 using System.Collections;
 using UnityEngine;
@@ -11,7 +12,7 @@ using UnityEngine.UI;
 public class LifeLossFeedback : MonoBehaviour
 {
     [Header("References")]
-    [Tooltip("The HUD lives text (any UI Graphic, e.g. TextMeshPro text).")]
+    [Tooltip("Optional: the HUD lives text (any UI Graphic). Leave empty when shells replace the text.")]
     [SerializeField] private Graphic livesText;
     [Tooltip("Full-screen vignette Image. Its Raycast Target must be off.")]
     [SerializeField] private Graphic vignette;
