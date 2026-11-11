@@ -3,10 +3,10 @@
 Read [START-HERE.md](START-HERE.md) to open the starter. Replace this README with your submission information.
 
 ## Student
-Name and student ID:
+Name and student ID:sarah almas-202261060
 
 ## Run
-Unity version: 6000.3.2f1
+Unity version: 6000.5.2f1
 
 Scenes, controls, and instructions:
 
@@ -24,13 +24,18 @@ Scenes, controls, and instructions:
 Theme visuals (After scene only): `Brick_After.prefab` (pastel glass capsule tinted with the original row colour, with a small creature inside in a fixed pattern), pearl ball and aqua glass paddle on the existing `Visual` children (fitted exactly to the colliders), frosted wall visuals, a centred camera and a mirrored teal ocean background with light rays, seaweed and coral on both sides. `OceanProgression.cs` slowly brightens the water and light rays as bricks are cleared. Setup is reproducible through `Tools > Pocket Ocean > Setup After Scene` (`Scripts/Feedback/Editor/PocketOceanSetup.cs`); running it again replaces its own objects without duplicates.
 
 ## Playtest and revision
-Observation, change, and result:
+Observation, change, and result:## Playtest and revision
+Friends played Before and then After and were asked which felt more satisfying and why, which feedback made events clearer, and whether anything was distracting or hard to notice.
+
+- **What they noticed:** All testers said After felt much better than Before. They pointed to the visuals and the sound together: the glass capsules popping with bubbles and a sound made breaking bricks satisfying, and the overall underwater look and audio made them want to keep playing. Before felt flat and silent in comparison. When asked about distractions, one tester said the released creatures were sometimes bright and large enough to pull attention away from the ball, especially when several bricks broke at once.
+- **What I changed:** On `PocketOcean/Creatures` (`CreatureDrifter.cs`), I reduced the creature size from 0.8 to 0.6 of a brick's height and lowered the glow intensity, so creatures stay a background reward instead of competing with the pearl.
+- **Result after the change:** On replay, the tester could follow the ball clearly during rapid brick breaks, and the creatures were still noticeable as a small reward after each break.
 
 ## Demonstration video
-Link:
+Link: https://drive.google.com/file/d/1ZwLy0caC9iF2m7S8r1xBJXhHtz11_J7o/view?usp=sharing
 
 ## AI use
-Tools, contributions, and how you tested/revised the output (or state no AI used):
+Tools, contributions, and how you tested/revised the output (or state no AI used):- Tuned: background music volume so the event sounds stay clear, released creature size and glow after playtesting, and the creature sorting order so they appear above the background but below the ball and paddle.
 
 ## Credits
 Starter adapted from [JuiceLab](https://github.com/serkoceyhan/JuiceLab) by Serkan Ceyhan, MIT. See LICENSE and SOURCE.md.

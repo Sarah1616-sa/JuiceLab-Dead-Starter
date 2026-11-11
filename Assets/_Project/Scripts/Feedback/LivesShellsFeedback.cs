@@ -88,6 +88,7 @@ public class LivesShellsFeedback : MonoBehaviour
         for (int i = 0; i < shells.Count; i++)
         {
             Image s = shells[i];
+            if (s == null) continue;   // already destroyed during scene teardown
             bool on = i < lives;
             if (s.gameObject.activeSelf != on) s.gameObject.SetActive(on);
             s.rectTransform.localScale = Vector3.one;

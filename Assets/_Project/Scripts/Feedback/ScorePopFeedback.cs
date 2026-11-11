@@ -43,12 +43,14 @@ public class ScorePopFeedback : MonoBehaviour
         GameEvents.ScoreChanged -= OnScoreChanged;
         if (routine != null) StopCoroutine(routine);
         routine = null;
-        if (hasBase) target.localScale = baseScale;
+        // ScoreText lives under the Canvas, a different root. When Play mode stops or the scene unloads, Unity
+        // destroys roots in no fixed order, so the text may already be gone here. Unity's == null catches that.
+        if (hasBase && target != null) target.localScale = baseScale;
     }
 
     private void OnScoreChanged(int _)
     {
-        if (!hasBase || !isActiveAndEnabled) return;
+        if (!hasBase || target == null || !isActiveAndEnabled) return;
         if (routine != null) StopCoroutine(routine);
         routine = StartCoroutine(Pop());
     }

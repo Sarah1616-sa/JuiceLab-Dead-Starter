@@ -152,7 +152,8 @@ public class LifeLossFeedback : MonoBehaviour
 
     private void RestoreText()
     {
-        if (!hasText) return;
+        // The lives text is on the Canvas (another root) and may already be destroyed when Play mode stops.
+        if (!hasText || livesText == null) return;
         livesText.color = textColor;
         textRect.localRotation = textRotation;
         textRect.localScale = textScale;

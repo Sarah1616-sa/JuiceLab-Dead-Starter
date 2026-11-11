@@ -64,12 +64,13 @@ public class PaddleSquashFeedback : MonoBehaviour
         GameEvents.BallHitPaddle -= OnBallHitPaddle;
         if (routine != null) StopCoroutine(routine);
         routine = null;
-        if (hasOriginal) visual.localScale = originalScale;
+        // Paddle/Visual belongs to another root that may already be destroyed when Play mode stops.
+        if (hasOriginal && visual != null) visual.localScale = originalScale;
     }
 
     private void OnBallHitPaddle(ImpactInfo info)
     {
-        if (hasOriginal)
+        if (hasOriginal && visual != null && isActiveAndEnabled)
         {
             if (routine != null) StopCoroutine(routine);
             routine = StartCoroutine(Squash());
